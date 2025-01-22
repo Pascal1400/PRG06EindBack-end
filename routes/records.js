@@ -6,7 +6,15 @@ const router = express.Router()
 
 router.get('/', async (req, res) => {
     try {
-        const records = await Record.find({});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 9;
+        const skip = (page - 1) * limit;
+
+        const records = await Record.find({}).skip(skip).limit(limit);
+        const totalItems = await Record.countDocuments();
+
+        const totalPages = Math.ceil(totalItems / limit);
+        const currentItems = records.length;
 
         const collection = {
             "items": records,
@@ -16,8 +24,36 @@ router.get('/', async (req, res) => {
                 },
                 "collection": {
                     "href": process.env.BASE_URL+"/records"
-                }
-            }
+                },
+            },
+            pagination: {
+                currentPage: page,
+                currentItems: currentItems,
+                totalPages: totalPages,
+                totalItems: totalItems,
+                _links: {
+                    first: {
+                        page: 1,
+                        href: `${process.env.BASE_URL}/records?page=1&limit=${limit}`,
+                    },
+                    last: {
+                        page: totalPages,
+                        href: `${process.env.BASE_URL}/records?page=${totalPages}&limit=${limit}`,
+                    },
+                    previous: page > 1
+                        ? {
+                            page: page - 1,
+                            href: `${process.env.BASE_URL}/records?page=${page - 1}&limit=${limit}`,
+                        }
+                        : null,
+                    next: page < totalPages
+                        ? {
+                            page: page + 1,
+                            href: `${process.env.BASE_URL}/records?page=${page + 1}&limit=${limit}`,
+                        }
+                        : null,
+                },
+            },
         }
         res.status(200).json(collection)
     } catch (error) {
