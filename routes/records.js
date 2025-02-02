@@ -7,7 +7,7 @@ const router = express.Router()
 router.get('/', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 9;
+        const limit = parseInt(req.query.limit) || 90;
         const skip = (page - 1) * limit;
 
         const records = await Record.find({}).skip(skip).limit(limit);
@@ -16,11 +16,15 @@ router.get('/', async (req, res) => {
         const totalPages = Math.ceil(totalItems / limit);
         const currentItems = records.length;
 
+        const queryParams = new URLSearchParams();
+        if (req.query.page) queryParams.append("page", page);
+        if (req.query.limit) queryParams.append("limit", limit);
+
         const collection = {
             "items": records,
             "_links": {
                 "self": {
-                    "href": process.env.BASE_URL+"/records"
+                    "href": `${process.env.BASE_URL}/records${queryParams.toString() ? '?' + queryParams.toString() : ''}`
                 },
                 "collection": {
                     "href": process.env.BASE_URL+"/records"
